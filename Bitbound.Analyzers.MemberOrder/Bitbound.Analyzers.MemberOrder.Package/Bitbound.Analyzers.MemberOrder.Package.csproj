@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>Bitbound.Analyzers.MemberOrder</PackageId>
+    <PackageVersion>1.0.0.0</PackageVersion>
+    <Authors>Jared Goodwin</Authors>
+    <PackageLicenseUrl>https://github.com/bitbound/Bitbound.Analyzers/blob/master/LICENSE.txt</PackageLicenseUrl>
+    <PackageIconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</PackageIconUrl>
+    <RepositoryUrl>https://github.com/bitbound/Analyzers</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/bitbound/Analyzers</PackageProjectUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Description>An analyzer and code-fix for ordering C# members according to StyleCop conventions.</Description>
+    <PackageReleaseNotes>Summary of changes made in this release of the package.</PackageReleaseNotes>
+    <Copyright>©️ $([System.DateTime]::Now.Year) Jared Goodwin</Copyright>
+    <PackageTags>Bitbound.Analyzers.MemberOrder, analyzers</PackageTags>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+
+    <TargetsForTfmSpecificContentInPackage>
+      $(TargetsForTfmSpecificContentInPackage);_AddAnalyzersToOutput</TargetsForTfmSpecificContentInPackage>
+
+    <Title></Title>
+
+    <PackageIcon>bitbound.png</PackageIcon>
+
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\.assets\bitbound.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bitbound.Analyzers.MemberOrder.CodeFixes\Bitbound.Analyzers.MemberOrder.CodeFixes.csproj" />
+    <ProjectReference Include="..\Bitbound.Analyzers.MemberOrder\Bitbound.Analyzers.MemberOrder.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="tools\*.ps1" CopyToOutputDirectory="PreserveNewest" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+  <Target Name="_AddAnalyzersToOutput">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(OutputPath)\Bitbound.Analyzers.MemberOrder.dll" PackagePath="analyzers/dotnet/cs" />
+      <TfmSpecificPackageFile Include="$(OutputPath)\Bitbound.Analyzers.MemberOrder.CodeFixes.dll" PackagePath="analyzers/dotnet/cs" />
+    </ItemGroup>
+  </Target>
+
+</Project>

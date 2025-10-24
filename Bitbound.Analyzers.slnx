@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Project Path="Bitbound.Analyzers.MemberOrder/Bitbound.Analyzers.MemberOrder.CodeFixes/Bitbound.Analyzers.MemberOrder.CodeFixes.csproj" />
+  <Project Path="Bitbound.Analyzers.MemberOrder/Bitbound.Analyzers.MemberOrder.Package/Bitbound.Analyzers.MemberOrder.Package.csproj" />
+  <Project Path="Bitbound.Analyzers.MemberOrder/Bitbound.Analyzers.MemberOrder.Test/Bitbound.Analyzers.MemberOrder.Test.csproj" />
+  <Project Path="Bitbound.Analyzers.MemberOrder/Bitbound.Analyzers.MemberOrder/Bitbound.Analyzers.MemberOrder.csproj" />
+</Solution>

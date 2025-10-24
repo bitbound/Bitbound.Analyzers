@@ -1,0 +1,22 @@
+<Project>
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <Authors>Jared Goodwin</Authors>
+        <Copyright>©️ $([System.DateTime]::Now.Year) Jared Goodwin</Copyright>
+        <RepositoryUrl>https://github.com/bitbound/Analyzers</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/bitbound/Analyzers</PackageProjectUrl>
+        <Company>$(Author)</Company>
+        <Description>A collection of analyzers used in projects by Bitbound.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <DebugType>embedded</DebugType>
+		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <!-- Commented code. It can be helpful for examples/docs. -->
+        <NoWarn>S125</NoWarn>
+    </PropertyGroup>
+</Project>
