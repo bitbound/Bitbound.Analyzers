@@ -591,8 +591,8 @@ public class MemberOrderUnitTests
       {
         public abstract class Migration
         {
-          protected abstract void Up();
           protected abstract void Down();
+          protected abstract void Up();
         }
       }
       
@@ -600,11 +600,11 @@ public class MemberOrderUnitTests
       {
         public class MyMigration : Microsoft.EntityFrameworkCore.Migrations.Migration
         {
-          protected override void Down()
+          protected override void Up()
           {
           }
-      
-          protected override void Up()
+
+          protected override void Down()
           {
           }
         }
