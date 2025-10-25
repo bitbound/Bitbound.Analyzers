@@ -43,11 +43,13 @@ public class MemberOrderAnalyzer : DiagnosticAnalyzer
         .ToList();
 
     var orderedMembers = memberOrders
-        .OrderBy(m => m.Order.MemberType)
-        .ThenBy(m => m.Order.Accessibility)
-        .ThenBy(m => m.Order.StaticInstance)
-        .Select(m => m.Member)
-        .ToList();
+      .OrderBy(m => m.Order.MemberType)
+      .ThenBy(m => m.Order.Accessibility)
+      .ThenBy(m => m.Order.StaticInstance)
+      // Tie-break: sort alphabetically by identifier when the other bits are equal
+      .ThenBy(m => GetIdentifier(m.Member).ValueText, StringComparer.Ordinal)
+      .Select(m => m.Member)
+      .ToList();
 
     var targetOrder = new Dictionary<MemberDeclarationSyntax, int>();
     for (int i = 0; i < orderedMembers.Count; i++)

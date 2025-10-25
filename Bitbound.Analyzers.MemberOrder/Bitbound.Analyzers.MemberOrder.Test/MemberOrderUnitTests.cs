@@ -336,8 +336,8 @@ public class MemberOrderUnitTests
       {
         public class MyClass
         {
-          public const int ConstField = 0;
           public const int AnotherConstField = 3;
+          public const int ConstField = 0;
 
           public static readonly int StaticReadonlyField = 1;
 
@@ -347,6 +347,160 @@ public class MemberOrderUnitTests
 
           private int _instanceField;
         }
+      }
+      """;
+
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Field");
+    await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
+  }
+
+  [TestMethod]
+  public async Task MixedAccessibility_DiagnosticAndFix()
+  {
+    var test = """
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          private void PrivateMethod() { }
+          protected void ProtectedMethod() { }
+          internal void {|#0:InternalMethod|}() { }
+          public void PublicMethod() { }
+        }
+      }
+      """;
+
+    var fixtest = """
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          public void PublicMethod() { }
+
+          internal void InternalMethod() { }
+
+          protected void ProtectedMethod() { }
+
+          private void PrivateMethod() { }
+        }
+      }
+      """;
+
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Method");
+    await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
+  }
+
+  [TestMethod]
+  public async Task StructMemberOrder_DiagnosticAndFix()
+  {
+    var test = """
+      namespace MyCode
+      {
+        public struct MyStruct
+        {
+          public void MyMethod() { }
+          public int {|#0:MyProperty|} { get; set; }
+        }
+      }
+      """;
+
+    var fixtest = """
+      namespace MyCode
+      {
+        public struct MyStruct
+        {
+          public int MyProperty { get; set; }
+
+          public void MyMethod() { }
+        }
+      }
+      """;
+
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Property");
+    await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
+  }
+
+  [TestMethod]
+  public async Task InterfaceMemberOrder_NoDiagnostic()
+  {
+    var test = """
+      namespace MyCode
+      {
+        public interface IMyInterface
+        {
+          event System.EventHandler MyEvent;
+          int MyProperty { get; set; }
+          void MyMethod();
+        }
+      }
+      """;
+
+    await VerifyCS.VerifyAnalyzerAsync(test);
+  }
+
+  [TestMethod]
+  public async Task ComplexScenario_DiagnosticAndFix()
+  {
+    var test = """
+      namespace MyCode
+      {
+          public class MyClass
+          {
+              public void PublicB() { }
+              private int _privateField;
+              public static int StaticProperty { get; set; }
+              public int Zebra { get; set; }
+              public int Apple { get; set; }
+              public int InstanceProperty { get; set; }
+              public const int {|#0:MyConst|} = 1;
+              public const int AnotherConst = 2;
+              static MyClass() { }
+              public MyClass() { }
+              public void PublicA() { }
+
+              public enum InnerEnum { One, Two }
+              public interface IInnerInterface { }
+              public struct InnerStruct { }
+              public record InnerRecord { }
+              public class InnerClass { }
+          }
+      }
+      """;
+
+    var fixtest = """
+      namespace MyCode
+      {
+          public class MyClass
+          {
+              public const int AnotherConst = 2;
+              public const int MyConst = 1;
+
+              private int _privateField;
+
+              static MyClass() { }
+
+              public MyClass() { }
+
+              public static int StaticProperty { get; set; }
+
+              public int Apple { get; set; }
+              public int InstanceProperty { get; set; }
+              public int Zebra { get; set; }
+
+              public void PublicA() { }
+              public void PublicB() { }
+
+
+              public enum InnerEnum { One, Two }
+
+              public interface IInnerInterface { }
+
+              public struct InnerStruct { }
+
+              public record InnerRecord { }
+
+              public class InnerClass { }
+          }
       }
       """;
 

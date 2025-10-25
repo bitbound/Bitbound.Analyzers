@@ -53,6 +53,8 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
         .OrderBy(m => MemberOrderAnalyzer.GetMemberOrder(m).MemberType)
         .ThenBy(m => MemberOrderAnalyzer.GetMemberOrder(m).Accessibility)
         .ThenBy(m => MemberOrderAnalyzer.GetMemberOrder(m).StaticInstance)
+        // Tie-break: alphabetical by identifier to make ordering deterministic
+        .ThenBy(m => MemberOrderAnalyzer.GetIdentifier(m).ValueText, StringComparer.Ordinal)
         .ToList();
 
     CopyWhiteSpace(ref members, sortedMembers);
