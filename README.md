@@ -38,7 +38,7 @@ dotnet test
 Or run the specific test project:
 
 ```pwsh
-dotnet test Bitbound.Analyzers.MemberOrder.Test\Bitbound.Analyzers.MemberOrder.Test.csproj
+dotnet test Bitbound.Analyzers.MemberOrder\Bitbound.Analyzers.MemberOrder.Test\Bitbound.Analyzers.MemberOrder.Test.csproj
 ```
 
 ## Contributing
