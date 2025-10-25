@@ -172,7 +172,7 @@ public class MemberOrderAnalyzer : DiagnosticAnalyzer
       if (attribute.AttributeClass?.Name == nameof(StructLayoutAttribute) &&
           attribute.ConstructorArguments.Length > 0 &&
           attribute.ConstructorArguments[0].Value is int layoutKind &&
-          layoutKind == (int)LayoutKind.Sequential) // LayoutKind.Sequential = 0
+          (layoutKind == (int)LayoutKind.Sequential || layoutKind == (int)LayoutKind.Explicit))
       {
         return true;
       }
