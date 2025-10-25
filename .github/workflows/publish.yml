@@ -26,4 +26,4 @@ jobs:
       majorVersion: 1
       minorVersion: 0
       runTests: true
-      testsPath: "./Bitbound.Analyzers.MemberOrder.Tests/Bitbound.Analyzers.MemberOrder.Tests.csproj"
+      testsPath: "./Bitbound.Analyzers.MemberOrder.Tests/"
