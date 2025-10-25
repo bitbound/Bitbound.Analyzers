@@ -564,4 +564,22 @@ public class MemberOrderUnitTests
     var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("_value");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
+
+  [TestMethod]
+  public async Task EnumMembers_NoDiagnostic()
+  {
+    var test = """
+    namespace MyCode
+    {
+      public enum MyEnum
+      {
+        Zebra = 3,
+        Apple = 1,
+        Banana = 2
+      }
+    }
+    """;
+
+    await VerifyCS.VerifyAnalyzerAsync(test);
+  }
 }
