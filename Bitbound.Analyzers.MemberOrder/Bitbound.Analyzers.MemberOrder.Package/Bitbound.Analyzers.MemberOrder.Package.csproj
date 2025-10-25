@@ -9,7 +9,6 @@
 
   <PropertyGroup>
     <PackageId>Bitbound.Analyzers.MemberOrder</PackageId>
-    <PackageVersion>1.0.0.0</PackageVersion>
     <Authors>Jared Goodwin</Authors>
     <PackageLicenseUrl>https://github.com/bitbound/Bitbound.Analyzers/blob/master/LICENSE.txt</PackageLicenseUrl>
     <PackageIconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</PackageIconUrl>
