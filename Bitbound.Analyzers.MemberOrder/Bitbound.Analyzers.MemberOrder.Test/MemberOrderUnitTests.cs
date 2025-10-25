@@ -119,7 +119,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Property");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MyProperty");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 
@@ -149,7 +149,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Field");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("ConstField");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 
@@ -179,7 +179,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Property");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("PublicProperty");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 
@@ -209,7 +209,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Method");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("StaticMethod");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 
@@ -248,7 +248,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Enum");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("InnerEnum");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 
@@ -279,7 +279,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Conversion operator");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("int");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 
@@ -309,7 +309,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Property");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("ProtIntProp");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 
@@ -350,7 +350,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Field");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("ConstField");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 
@@ -386,7 +386,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Method");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("InternalMethod");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 
@@ -416,7 +416,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Property");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MyProperty");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 
@@ -504,7 +504,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Field");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MyConst");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 }
