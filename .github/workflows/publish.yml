@@ -28,11 +28,11 @@ jobs:
       uses: bitbound/workflows/.github/actions/setup-dotnet-latest@main
     
     - name: Build (dev)
-      if: ${{ inputs.prerelease }}
+      if: ${{ github.event_name != 'workflow_dispatch' || inputs.prerelease }}
       run: dotnet build Bitbound.Analyzers.slnx --configuration Release  -p:FileVersion="${{ env.PKG_VERSION }}" -p:AssemblyVersion="${{ env.PKG_VERSION }}" -p:VersionPrefix="${{ env.PKG_VERSION }}" -p:VersionSuffix="dev"
 
     - name: Build (prod)
-      if: ${{ inputs.prerelease == false}}
+      if: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease == false}}
       run: dotnet build Bitbound.Analyzers.slnx --configuration Release  -p:FileVersion="${{ env.PKG_VERSION }}" -p:AssemblyVersion="${{ env.PKG_VERSION }}" -p:VersionPrefix="${{ env.PKG_VERSION }}"
 
     - name: Test
@@ -42,5 +42,5 @@ jobs:
       run: dotnet pack Bitbound.Analyzers.MemberOrder/Bitbound.Analyzers.MemberOrder.Package/Bitbound.Analyzers.MemberOrder.Package.csproj --configuration Release --no-build -p:PackageVersion=${{ env.PKG_VERSION }}
     
     - name: Publish
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
       run: dotnet nuget push **/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
