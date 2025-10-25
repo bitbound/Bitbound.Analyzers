@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Runtime.InteropServices;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -48,23 +49,23 @@ public class MemberOrderAnalyzer : DiagnosticAnalyzer
 
   public static SyntaxToken GetIdentifier(MemberDeclarationSyntax member)
   {
-    switch (member)
+    return member switch
     {
-      case PropertyDeclarationSyntax p: return p.Identifier;
-      case MethodDeclarationSyntax m: return m.Identifier;
-      case FieldDeclarationSyntax f: return f.Declaration.Variables.First().Identifier;
-      case ConstructorDeclarationSyntax c: return c.Identifier;
-      case EventDeclarationSyntax e: return e.Identifier;
-      case IndexerDeclarationSyntax i: return i.ThisKeyword;
-      case InterfaceDeclarationSyntax i: return i.Identifier;
-      case StructDeclarationSyntax s: return s.Identifier;
-      case OperatorDeclarationSyntax o: return o.OperatorToken;
-      case ConversionOperatorDeclarationSyntax co: return co.Type.GetFirstToken();
-      case RecordDeclarationSyntax r: return r.Identifier;
-      case EnumDeclarationSyntax e: return e.Identifier;
-      case ClassDeclarationSyntax c: return c.Identifier;
-      default: return member.GetFirstToken();
-    }
+      PropertyDeclarationSyntax p => p.Identifier,
+      MethodDeclarationSyntax m => m.Identifier,
+      FieldDeclarationSyntax f => f.Declaration.Variables.First().Identifier,
+      ConstructorDeclarationSyntax c => c.Identifier,
+      EventDeclarationSyntax e => e.Identifier,
+      IndexerDeclarationSyntax i => i.ThisKeyword,
+      InterfaceDeclarationSyntax i => i.Identifier,
+      StructDeclarationSyntax s => s.Identifier,
+      OperatorDeclarationSyntax o => o.OperatorToken,
+      ConversionOperatorDeclarationSyntax co => co.Type.GetFirstToken(),
+      RecordDeclarationSyntax r => r.Identifier,
+      EnumDeclarationSyntax e => e.Identifier,
+      ClassDeclarationSyntax c => c.Identifier,
+      _ => member.GetFirstToken(),
+    };
   }
 
   public static (int MemberType, int Accessibility, int StaticInstance) GetMemberOrder(MemberDeclarationSyntax member)
@@ -153,8 +154,6 @@ public class MemberOrderAnalyzer : DiagnosticAnalyzer
     return member.Modifiers.Any(SyntaxKind.StaticKeyword) ? 1 : 2;
   }
 
-
-
   public override void Initialize(AnalysisContext context)
   {
     context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
@@ -163,7 +162,24 @@ public class MemberOrderAnalyzer : DiagnosticAnalyzer
     context.RegisterSyntaxNodeAction(AnalyzeTypeDeclaration, SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.InterfaceDeclaration);
   }
 
+  private static bool HasSequentialLayout(TypeDeclarationSyntax typeDeclaration, SemanticModel semanticModel)
+  {
+    var typeSymbol = semanticModel.GetDeclaredSymbol(typeDeclaration);
+    if (typeSymbol is null) return false;
 
+    foreach (var attribute in typeSymbol.GetAttributes())
+    {
+      if (attribute.AttributeClass?.Name == nameof(StructLayoutAttribute) &&
+          attribute.ConstructorArguments.Length > 0 &&
+          attribute.ConstructorArguments[0].Value is int layoutKind &&
+          layoutKind == (int)LayoutKind.Sequential) // LayoutKind.Sequential = 0
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
 
   private void AnalyzeTypeDeclaration(SyntaxNodeAnalysisContext context)
   {
@@ -171,6 +187,11 @@ public class MemberOrderAnalyzer : DiagnosticAnalyzer
     var members = typeDeclaration.Members;
 
     if (members.Count < 2)
+    {
+      return;
+    }
+
+    if (typeDeclaration is StructDeclarationSyntax && HasSequentialLayout(typeDeclaration, context.SemanticModel))
     {
       return;
     }

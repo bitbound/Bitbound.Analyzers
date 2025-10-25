@@ -213,7 +213,7 @@ public class MemberOrderUnitTests
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 
-   [TestMethod]
+  [TestMethod]
   public async Task NestedTypesOrder_DiagnosticAndFix()
   {
     var test = """
@@ -505,6 +505,63 @@ public class MemberOrderUnitTests
       """;
 
     var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MyConst");
+    await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
+  }
+
+  [TestMethod]
+  public async Task StructWithSequentialLayout_NoDiagnostic()
+  {
+    var test = """
+      using System.Runtime.InteropServices;
+
+      namespace MyCode
+      {
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MyStruct
+        {
+          public int MyMethod() { return 0; }
+          private int _value;
+          private string _name;
+        }
+      }
+      """;
+
+    await VerifyCS.VerifyAnalyzerAsync(test);
+  }
+
+  [TestMethod]
+  public async Task StructWithoutSequentialLayout_CorrectlyDiagnoses()
+  {
+    var test = """
+      using System.Runtime.InteropServices;
+
+      namespace MyCode
+      {
+        public struct MyStruct
+        {
+          public int MyMethod() { return 0; }
+          private int _value;
+          private string {|#0:_name|};
+        }
+      }
+      """;
+
+    var fixtest = """
+      using System.Runtime.InteropServices;
+
+      namespace MyCode
+      {
+        public struct MyStruct
+        {
+          private string _name;
+          private int _value;
+
+          public int MyMethod() { return 0; }
+        }
+      }
+      """;
+
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("_name");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 }
