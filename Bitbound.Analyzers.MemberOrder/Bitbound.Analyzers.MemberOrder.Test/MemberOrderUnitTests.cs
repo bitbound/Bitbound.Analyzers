@@ -582,4 +582,35 @@ public class MemberOrderUnitTests
 
     await VerifyCS.VerifyAnalyzerAsync(test);
   }
+
+  [TestMethod]
+  public async Task MigrationClass_NoDiagnostic()
+  {
+    var test = """
+      namespace Microsoft.EntityFrameworkCore.Migrations
+      {
+        public abstract class Migration
+        {
+          protected abstract void Up();
+          protected abstract void Down();
+        }
+      }
+      
+      namespace MyCode
+      {
+        public class MyMigration : Microsoft.EntityFrameworkCore.Migrations.Migration
+        {
+          protected override void Down()
+          {
+          }
+      
+          protected override void Up()
+          {
+          }
+        }
+      }
+      """;
+
+    await VerifyCS.VerifyAnalyzerAsync(test);
+  }
 }

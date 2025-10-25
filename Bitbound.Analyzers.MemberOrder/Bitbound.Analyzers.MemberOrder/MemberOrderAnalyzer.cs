@@ -190,8 +190,15 @@ public class MemberOrderAnalyzer : DiagnosticAnalyzer
     {
       return;
     }
+    
+    if (context.SemanticModel.GetDeclaredSymbol(typeDeclaration) is INamedTypeSymbol typeSymbol &&
+        IgnoredClasses.Classes.Any(ignored => ignored.FullyQualifiedName == typeSymbol.ToDisplayString()))
+    {
+      return;
+    }
 
-    if (typeDeclaration is StructDeclarationSyntax && HasSequentialLayout(typeDeclaration, context.SemanticModel))
+    if (typeDeclaration is StructDeclarationSyntax &&
+        HasSequentialLayout(typeDeclaration, context.SemanticModel))
     {
       return;
     }
