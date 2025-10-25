@@ -39,7 +39,7 @@ jobs:
       run: dotnet test Bitbound.Analyzers.slnx --configuration Release --no-build
 
     - name: Pack
-      run: dotnet pack Bitbound.Analyzers.MemberOrder.Package/Bitbound.Analyzers.MemberOrder.Package.csproj --configuration Release --no-build -p:PackageVersion=${{ env.PKG_VERSION }}
+      run: dotnet pack Bitbound.Analyzers.MemberOrder/Bitbound.Analyzers.MemberOrder.Package/Bitbound.Analyzers.MemberOrder.Package.csproj --configuration Release --no-build -p:PackageVersion=${{ env.PKG_VERSION }}
     
     - name: Publish
       if: github.ref == 'refs/heads/main'
