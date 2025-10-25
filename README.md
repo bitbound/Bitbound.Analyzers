@@ -2,9 +2,17 @@
 
 A collection of Roslyn analyzers used in Bitbound's projects.
 
-## Current status
+## Analyzers
+
+### MemberOrder
 
 As of this writing, `MemberOrder` is the only analyzer implemented in this repository. It enforces a consistent ordering of members inside types. Additional analyzers may be added in future updates.
+
+NuGet package: [Bitbound.Analyzers.MemberOrder](https://www.nuget.org/packages/Bitbound.Analyzers.MemberOrder)
+
+```pwsh
+dotnet add package Bitbound.Analyzers.MemberOrder
+```
 
 ## Project layout
 
@@ -53,4 +61,4 @@ Contributions are welcome. If you'd like to add a new analyzer or improve the ex
 
 ## License
 
-This project is licensed under the terms in `LICENSE.txt`, which is an MIT license.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE.txt) file for details.
