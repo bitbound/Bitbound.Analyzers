@@ -10,95 +10,40 @@ namespace Bitbound.Analyzers.MemberOrder;
 public class MemberOrderAnalyzer : DiagnosticAnalyzer
 {
   public const string DiagnosticId = "BB0001";
-
-  private static readonly LocalizableString Title = new LocalizableResourceString(nameof(Resources.AnalyzerTitle), Resources.ResourceManager, typeof(Resources));
-  private static readonly LocalizableString MessageFormat = new LocalizableResourceString(nameof(Resources.AnalyzerMessageFormat), Resources.ResourceManager, typeof(Resources));
-  private static readonly LocalizableString Description = new LocalizableResourceString(nameof(Resources.AnalyzerDescription), Resources.ResourceManager, typeof(Resources));
   private const string Category = "Layout";
 
+  private static readonly LocalizableString Description = new LocalizableResourceString(nameof(Resources.AnalyzerDescription), Resources.ResourceManager, typeof(Resources));
+  private static readonly LocalizableString MessageFormat = new LocalizableResourceString(nameof(Resources.AnalyzerMessageFormat), Resources.ResourceManager, typeof(Resources));
+  private static readonly LocalizableString Title = new LocalizableResourceString(nameof(Resources.AnalyzerTitle), Resources.ResourceManager, typeof(Resources));
   private static readonly DiagnosticDescriptor Rule = new(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Warning, isEnabledByDefault: true, description: Description);
-
   public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [Rule];
 
-  public override void Initialize(AnalysisContext context)
+  public static int GetAccessibilityOrder(MemberDeclarationSyntax member)
   {
-    context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
-    context.EnableConcurrentExecution();
+    var modifiers = member.Modifiers;
 
-    context.RegisterSyntaxNodeAction(AnalyzeTypeDeclaration, SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.InterfaceDeclaration);
-  }
+    if (modifiers.Any(SyntaxKind.PublicKeyword)) return 1;
 
-  private void AnalyzeTypeDeclaration(SyntaxNodeAnalysisContext context)
-  {
-    var typeDeclaration = (TypeDeclarationSyntax)context.Node;
-    var members = typeDeclaration.Members;
+    bool isProtected = modifiers.Any(SyntaxKind.ProtectedKeyword);
+    bool isInternal = modifiers.Any(SyntaxKind.InternalKeyword);
 
-    if (members.Count < 2)
+    if (isProtected && isInternal) return 3; // protected internal
+    if (isInternal) return 2; // internal
+
+    bool isPrivate = modifiers.Any(SyntaxKind.PrivateKeyword);
+
+    if (isProtected && isPrivate) return 5; // private protected
+    if (isProtected) return 4; // protected
+
+    if (isPrivate) return 6; // private
+
+    // Default accessibility
+    if (member.Parent is InterfaceDeclarationSyntax)
     {
-      return;
+      return 1; // public
     }
 
-    var memberOrders = members
-        .Select(member => (Member: member, Order: GetMemberOrder(member)))
-        .ToList();
-
-    var orderedMembers = memberOrders
-      .OrderBy(m => m.Order.MemberType)
-      .ThenBy(m => m.Order.Accessibility)
-      .ThenBy(m => m.Order.StaticInstance)
-      // Tie-break: sort alphabetically by identifier when the other bits are equal
-      .ThenBy(m => GetIdentifier(m.Member).ValueText, StringComparer.Ordinal)
-      .Select(m => m.Member)
-      .ToList();
-
-    var targetOrder = new Dictionary<MemberDeclarationSyntax, int>();
-    for (int i = 0; i < orderedMembers.Count; i++)
-    {
-      targetOrder[orderedMembers[i]] = i;
-    }
-
-    for (int i = 0; i < members.Count; i++)
-    {
-      var currentMember = members[i];
-      var targetIndex = targetOrder[currentMember];
-
-      if (targetIndex < i)
-      {
-        var diagnostic = Diagnostic.Create(
-            Rule,
-            GetIdentifier(currentMember).GetLocation(),
-            GetMemberTypeForMessage(currentMember));
-        context.ReportDiagnostic(diagnostic);
-        // Only report the first one found to avoid spamming.
-        // The code fix will sort the whole type anyway.
-        return;
-      }
-    }
-  }
-
-  private string GetMemberTypeForMessage(MemberDeclarationSyntax member)
-  {
-    return member.Kind() switch
-    {
-      SyntaxKind.FieldDeclaration => "Field",
-      SyntaxKind.ConstructorDeclaration => "Constructor",
-      SyntaxKind.DestructorDeclaration => "Destructor",
-      SyntaxKind.DelegateDeclaration => "Delegate",
-      SyntaxKind.EventDeclaration => "Event",
-      SyntaxKind.EventFieldDeclaration => "Event",
-      SyntaxKind.EnumDeclaration => "Enum",
-      SyntaxKind.InterfaceDeclaration => "Interface",
-      SyntaxKind.PropertyDeclaration => "Property",
-      SyntaxKind.IndexerDeclaration => "Indexer",
-      SyntaxKind.MethodDeclaration => "Method",
-      SyntaxKind.OperatorDeclaration => "Operator",
-      SyntaxKind.ConversionOperatorDeclaration => "Conversion operator",
-      SyntaxKind.StructDeclaration => "Struct",
-      SyntaxKind.RecordDeclaration => "Record",
-      SyntaxKind.RecordStructDeclaration => "Record struct",
-      SyntaxKind.ClassDeclaration => "Class",
-      _ => member.Kind().ToString(),
-    };
+    return 6; // private for class/struct
   }
 
   public static SyntaxToken GetIdentifier(MemberDeclarationSyntax member)
@@ -202,37 +147,69 @@ public class MemberOrderAnalyzer : DiagnosticAnalyzer
     }
   }
 
-  public static int GetAccessibilityOrder(MemberDeclarationSyntax member)
-  {
-    var modifiers = member.Modifiers;
-
-    if (modifiers.Any(SyntaxKind.PublicKeyword)) return 1;
-
-    bool isProtected = modifiers.Any(SyntaxKind.ProtectedKeyword);
-    bool isInternal = modifiers.Any(SyntaxKind.InternalKeyword);
-
-    if (isProtected && isInternal) return 3; // protected internal
-    if (isInternal) return 2; // internal
-
-    bool isPrivate = modifiers.Any(SyntaxKind.PrivateKeyword);
-
-    if (isProtected && isPrivate) return 5; // private protected
-    if (isProtected) return 4; // protected
-
-    if (isPrivate) return 6; // private
-
-    // Default accessibility
-    if (member.Parent is InterfaceDeclarationSyntax)
-    {
-      return 1; // public
-    }
-
-    return 6; // private for class/struct
-  }
-
   public static int GetStaticInstanceOrder(MemberDeclarationSyntax member)
   {
     // static members first, then instance
     return member.Modifiers.Any(SyntaxKind.StaticKeyword) ? 1 : 2;
+  }
+
+
+
+  public override void Initialize(AnalysisContext context)
+  {
+    context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+    context.EnableConcurrentExecution();
+
+    context.RegisterSyntaxNodeAction(AnalyzeTypeDeclaration, SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration, SyntaxKind.InterfaceDeclaration);
+  }
+
+
+
+  private void AnalyzeTypeDeclaration(SyntaxNodeAnalysisContext context)
+  {
+    var typeDeclaration = (TypeDeclarationSyntax)context.Node;
+    var members = typeDeclaration.Members;
+
+    if (members.Count < 2)
+    {
+      return;
+    }
+
+    var memberOrders = members
+        .Select(member => (Member: member, Order: GetMemberOrder(member)))
+        .ToList();
+
+    var orderedMembers = memberOrders
+      .OrderBy(m => m.Order.MemberType)
+      .ThenBy(m => m.Order.Accessibility)
+      .ThenBy(m => m.Order.StaticInstance)
+      // Tie-break: sort alphabetically by identifier when the other bits are equal
+      .ThenBy(m => GetIdentifier(m.Member).ValueText, StringComparer.Ordinal)
+      .Select(m => m.Member)
+      .ToList();
+
+    var targetOrder = new Dictionary<MemberDeclarationSyntax, int>();
+    for (int i = 0; i < orderedMembers.Count; i++)
+    {
+      targetOrder[orderedMembers[i]] = i;
+    }
+
+    for (int i = 0; i < members.Count; i++)
+    {
+      var currentMember = members[i];
+      var targetIndex = targetOrder[currentMember];
+
+      if (targetIndex < i)
+      {
+        var diagnostic = Diagnostic.Create(
+            Rule,
+            GetIdentifier(currentMember).GetLocation(),
+            GetIdentifier(currentMember).ValueText);
+        context.ReportDiagnostic(diagnostic);
+        // Only report the first one found to avoid spamming.
+        // The code fix will sort the whole type anyway.
+        return;
+      }
+    }
   }
 }
