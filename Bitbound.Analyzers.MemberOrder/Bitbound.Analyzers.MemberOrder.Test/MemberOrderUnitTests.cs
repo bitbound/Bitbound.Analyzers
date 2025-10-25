@@ -322,8 +322,8 @@ public class MemberOrderUnitTests
         public class MyClass
         {
           private int _instanceField;
-          public static readonly int StaticReadonlyField = 1;
-          public const int {|#0:ConstField|} = 0;
+          public static readonly int {|#0:StaticReadonlyField|} = 1;
+          public const int ConstField = 0;
           public const int AnotherConstField = 3;
           private readonly int _readonlyField;
           public static int StaticField = 2;
@@ -350,7 +350,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("ConstField");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("StaticReadonlyField");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 
@@ -363,8 +363,8 @@ public class MemberOrderUnitTests
         public class MyClass
         {
           private void PrivateMethod() { }
-          protected void ProtectedMethod() { }
-          internal void {|#0:InternalMethod|}() { }
+          protected void {|#0:ProtectedMethod|}() { }
+          internal void InternalMethod() { }
           public void PublicMethod() { }
         }
       }
@@ -386,7 +386,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("InternalMethod");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("ProtectedMethod");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 
@@ -447,12 +447,12 @@ public class MemberOrderUnitTests
           public class MyClass
           {
               public void PublicB() { }
-              private int _privateField;
+              private int {|#0:_privateField|};
               public static int StaticProperty { get; set; }
               public int Zebra { get; set; }
               public int Apple { get; set; }
               public int InstanceProperty { get; set; }
-              public const int {|#0:MyConst|} = 1;
+              public const int MyConst = 1;
               public const int AnotherConst = 2;
               static MyClass() { }
               public MyClass() { }
@@ -504,7 +504,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MyConst");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("_privateField");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 
@@ -540,8 +540,8 @@ public class MemberOrderUnitTests
         public struct MyStruct
         {
           public int MyMethod() { return 0; }
-          private int _value;
-          private string {|#0:_name|};
+          private int {|#0:_value|};
+          private string _name;
         }
       }
       """;
@@ -561,7 +561,7 @@ public class MemberOrderUnitTests
       }
       """;
 
-    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("_name");
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("_value");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 }

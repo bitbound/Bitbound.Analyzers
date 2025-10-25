@@ -215,12 +215,14 @@ public class MemberOrderAnalyzer : DiagnosticAnalyzer
       targetOrder[orderedMembers[i]] = i;
     }
 
-    for (int i = 0; i < members.Count; i++)
+    for (int i = 1; i < members.Count; i++)
     {
       var currentMember = members[i];
-      var targetIndex = targetOrder[currentMember];
+      var previousMember = members[i - 1];
+      var currentTarget = targetOrder[currentMember];
+      var previousTarget = targetOrder[previousMember];
 
-      if (targetIndex < i)
+      if (currentTarget < previousTarget)
       {
         var diagnostic = Diagnostic.Create(
             Rule,
