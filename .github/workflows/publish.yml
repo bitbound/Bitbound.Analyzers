@@ -21,9 +21,9 @@ jobs:
     secrets: 
       registryApiKey: ${{ secrets.NUGET_API_KEY }}
     with:
-      projectOrSlnDir: "${{ github.workspace }}/Bitbound.Analyzers.MemberOrder/Bitbound.Analyzers.MemberOrder.Package/"
+      projectOrSlnDir: "./Bitbound.Analyzers.MemberOrder/Bitbound.Analyzers.MemberOrder.Package/"
       prerelease: "${{ inputs.prerelease || github.event_name != 'workflow_dispatch' }}"
       majorVersion: 1
       minorVersion: 0
       runTests: true
-      testsPath: "${{ github.workspace }}/Bitbound.Analyzers.MemberOrder.Tests/Bitbound.Analyzers.MemberOrder.Tests.csproj"
+      testsPath: "./Bitbound.Analyzers.MemberOrder.Tests/Bitbound.Analyzers.MemberOrder.Tests.csproj"
