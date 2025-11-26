@@ -490,7 +490,6 @@ public class MemberOrderUnitTests
               public void PublicA() { }
               public void PublicB() { }
 
-
               public enum InnerEnum { One, Two }
 
               public interface IInnerInterface { }

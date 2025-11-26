@@ -74,23 +74,73 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
   {
     if (members.Count == 0) return;
 
-    // Add blank lines between member type groups
+    // Adjust spacing between members
     for (int i = 1; i < sortedMembers.Count; i++)
     {
-      var prevOrder = MemberOrderAnalyzer.GetMemberOrder(sortedMembers[i - 1]);
-      var currentOrder = MemberOrderAnalyzer.GetMemberOrder(sortedMembers[i]);
+      var prevMember = sortedMembers[i - 1];
+      var currMember = sortedMembers[i];
 
-      if (prevOrder.MemberType != currentOrder.MemberType ||
-          prevOrder.Accessibility != currentOrder.Accessibility ||
-          prevOrder.StaticInstance != currentOrder.StaticInstance)
+      var prevOrder = MemberOrderAnalyzer.GetMemberOrder(prevMember);
+      var currentOrder = MemberOrderAnalyzer.GetMemberOrder(currMember);
+
+      bool differentGroup = prevOrder.MemberType != currentOrder.MemberType ||
+                            prevOrder.Accessibility != currentOrder.Accessibility ||
+                            prevOrder.StaticInstance != currentOrder.StaticInstance;
+
+      var prevTrailing = prevMember.GetTrailingTrivia();
+      bool prevHasNewline = prevTrailing.Any(t => t.IsKind(SyntaxKind.EndOfLineTrivia));
+
+      var existingTrivia = currMember.GetLeadingTrivia();
+      var skipCount = 0;
+      SyntaxTrivia? lastWhitespace = null;
+
+      foreach (var t in existingTrivia)
       {
-        var existingTrivia = sortedMembers[i].GetLeadingTrivia();
-        var newTrivia = SyntaxFactory
-            .TriviaList(SyntaxFactory.CarriageReturnLineFeed)
-            .AddRange(existingTrivia);
-
-        sortedMembers[i] = sortedMembers[i].WithLeadingTrivia(newTrivia);
+        if (t.IsKind(SyntaxKind.WhitespaceTrivia))
+        {
+          lastWhitespace = t;
+          skipCount++;
+        }
+        else if (t.IsKind(SyntaxKind.EndOfLineTrivia))
+        {
+          lastWhitespace = null;
+          skipCount++;
+        }
+        else
+        {
+          break;
+        }
       }
+
+      int newlinesNeeded;
+      if (differentGroup)
+      {
+        // Want 1 blank line (2 newlines total)
+        newlinesNeeded = prevHasNewline ? 1 : 2;
+      }
+      else
+      {
+        // Want 0 blank lines (1 newline total)
+        newlinesNeeded = prevHasNewline ? 0 : 1;
+      }
+
+      var newTriviaList = new List<SyntaxTrivia>();
+      for (int k = 0; k < newlinesNeeded; k++)
+      {
+        newTriviaList.Add(SyntaxFactory.CarriageReturnLineFeed);
+      }
+
+      if (lastWhitespace.HasValue)
+      {
+        newTriviaList.Add(lastWhitespace.Value);
+      }
+
+      for (int j = skipCount; j < existingTrivia.Count; j++)
+      {
+        newTriviaList.Add(existingTrivia[j]);
+      }
+
+      sortedMembers[i] = currMember.WithLeadingTrivia(SyntaxFactory.TriviaList(newTriviaList));
     }
 
     var originalFirst = members[0];
