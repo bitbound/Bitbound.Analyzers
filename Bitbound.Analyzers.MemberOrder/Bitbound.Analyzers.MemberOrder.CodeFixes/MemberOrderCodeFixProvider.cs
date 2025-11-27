@@ -74,7 +74,45 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
   {
     if (members.Count == 0) return;
 
-    // Adjust spacing between members
+    // First pass: normalize trailing trivia to remove excessive newlines
+    for (int i = 0; i < sortedMembers.Count; i++)
+    {
+      var member = sortedMembers[i];
+      var trailingTrivia = member.GetTrailingTrivia();
+      
+      // Keep only the first newline in trailing trivia, remove any additional ones
+      var newTrailingTrivia = new List<SyntaxTrivia>();
+      bool hasNewline = false;
+      
+      foreach (var t in trailingTrivia)
+      {
+        if (t.IsKind(SyntaxKind.EndOfLineTrivia))
+        {
+          if (!hasNewline)
+          {
+            newTrailingTrivia.Add(t);
+            hasNewline = true;
+          }
+          // Skip additional newlines
+        }
+        else if (t.IsKind(SyntaxKind.WhitespaceTrivia))
+        {
+          // Skip whitespace after newline
+          if (!hasNewline)
+          {
+            newTrailingTrivia.Add(t);
+          }
+        }
+        else
+        {
+          newTrailingTrivia.Add(t);
+        }
+      }
+      
+      sortedMembers[i] = member.WithTrailingTrivia(SyntaxFactory.TriviaList(newTrailingTrivia));
+    }
+
+    // Second pass: adjust spacing between members
     for (int i = 1; i < sortedMembers.Count; i++)
     {
       var prevMember = sortedMembers[i - 1];
@@ -92,22 +130,25 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
 
       var existingTrivia = currMember.GetLeadingTrivia();
       var skipCount = 0;
-      SyntaxTrivia? lastWhitespace = null;
+      SyntaxTrivia? indentationWhitespace = null;
 
+      // Skip all leading whitespace and newlines to find where non-whitespace trivia starts
+      // Keep track of the last whitespace on the last line (the indentation)
       foreach (var t in existingTrivia)
       {
         if (t.IsKind(SyntaxKind.WhitespaceTrivia))
         {
-          lastWhitespace = t;
+          indentationWhitespace = t;
           skipCount++;
         }
         else if (t.IsKind(SyntaxKind.EndOfLineTrivia))
         {
-          lastWhitespace = null;
+          indentationWhitespace = null; // Reset when we hit a newline
           skipCount++;
         }
         else
         {
+          // Found non-whitespace trivia (e.g., comment, attribute)
           break;
         }
       }
@@ -130,11 +171,13 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
         newTriviaList.Add(SyntaxFactory.CarriageReturnLineFeed);
       }
 
-      if (lastWhitespace.HasValue)
+      // Add back the indentation whitespace if it exists
+      if (indentationWhitespace.HasValue)
       {
-        newTriviaList.Add(lastWhitespace.Value);
+        newTriviaList.Add(indentationWhitespace.Value);
       }
 
+      // Add back all non-whitespace trivia (comments, attributes, etc.)
       for (int j = skipCount; j < existingTrivia.Count; j++)
       {
         newTriviaList.Add(existingTrivia[j]);

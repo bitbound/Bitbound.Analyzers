@@ -132,4 +132,53 @@ public class MemberOrderSpacingTests
 
     await VerifyCS.VerifyCodeFixAsync(test, expectedDiagnostics, expectedSource);
   }
+
+  [TestMethod]
+  public async Task Fix_PropertiesWithAttributes_NoExcessiveWhitespace()
+  {
+    var test = """
+            namespace MyCode
+            {
+                public interface IProcess
+                {
+                    int BasePriority { get; }
+                    bool EnableRaisingEvents { get; set; }
+                    [System.Obsolete]
+                    nint ProcessorAffinity { get; set; }
+
+                    string StandardInput { get; }
+                    string StandardOutput { get; }
+
+                    bool {|#0:Responding|} { get; }
+                    int SessionId { get; }
+                    string StartInfo { get; set; }
+
+                    void Kill();
+                }
+            }
+            """;
+
+    var expectedSource = """
+            namespace MyCode
+            {
+                public interface IProcess
+                {
+                    int BasePriority { get; }
+                    bool EnableRaisingEvents { get; set; }
+                    [System.Obsolete]
+                    nint ProcessorAffinity { get; set; }
+                    bool Responding { get; }
+                    int SessionId { get; }
+                    string StandardInput { get; }
+                    string StandardOutput { get; }
+                    string StartInfo { get; set; }
+
+                    void Kill();
+                }
+            }
+            """;
+
+    var expectedDiagnostic = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Responding");
+    await VerifyCS.VerifyCodeFixAsync(test, expectedDiagnostic, expectedSource);
+  }
 }
