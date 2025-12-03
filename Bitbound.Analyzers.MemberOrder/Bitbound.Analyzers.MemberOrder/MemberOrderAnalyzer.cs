@@ -47,6 +47,7 @@ public class MemberOrderAnalyzer : DiagnosticAnalyzer
             RecordDeclarationSyntax r => r.Identifier,
             EnumDeclarationSyntax e => e.Identifier,
             ClassDeclarationSyntax c => c.Identifier,
+            DelegateDeclarationSyntax d => d.Identifier,
             _ => member.GetFirstToken()
         };
     }

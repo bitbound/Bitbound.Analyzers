@@ -488,6 +488,7 @@ public class MemberOrderUnitTests
               public int Zebra { get; set; }
 
               public void PublicA() { }
+
               public void PublicB() { }
 
               public enum InnerEnum { One, Two }
@@ -611,5 +612,38 @@ public class MemberOrderUnitTests
       """;
 
     await VerifyCS.VerifyAnalyzerAsync(test);
+  }
+
+  [TestMethod]
+  public async Task PrivateNestedClass_DiagnosticAndFix()
+  {
+    var test = """
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          public void MyMethod() { }
+          private class PrivateClass { }
+          public int {|#0:MyProperty|} { get; set; }
+        }
+      }
+      """;
+
+    var fixtest = """
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          public int MyProperty { get; set; }
+
+          public void MyMethod() { }
+
+          private class PrivateClass { }
+        }
+      }
+      """;
+
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MyProperty");
+    await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
 }

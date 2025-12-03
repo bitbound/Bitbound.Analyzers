@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using VerifyCS = Bitbound.Analyzers.MemberOrder.Test.CSharpCodeFixVerifier<
   Bitbound.Analyzers.MemberOrder.MemberOrderAnalyzer,
@@ -107,7 +106,7 @@ public class MemberOrderSpacingTests
     // 1. Fields move to top.
     // 2. Methods move to bottom.
     // 3. FieldA and FieldB are same group -> Tight spacing (no blank line).
-    // 4. MethodA and MethodB are same group -> Tight spacing (no blank line).
+    // 4. MethodA and MethodB are same group -> Methods always have blank lines between them.
     // 5. Gap between FieldB and MethodA -> Blank line.
 
     var expectedSource = """
@@ -119,6 +118,7 @@ public class MemberOrderSpacingTests
                     public int FieldB;
 
                     public void MethodA() { }
+
                     public void MethodB() { }
                 }
             }

@@ -125,6 +125,11 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
                             prevOrder.Accessibility != currentOrder.Accessibility ||
                             prevOrder.StaticInstance != currentOrder.StaticInstance;
 
+      // Methods should always have spacing between them, even in the same group
+      bool isMethod = currMember.Kind() == SyntaxKind.MethodDeclaration;
+      bool prevIsMethod = prevMember.Kind() == SyntaxKind.MethodDeclaration;
+      bool bothMethods = isMethod && prevIsMethod;
+
       var prevTrailing = prevMember.GetTrailingTrivia();
       bool prevHasNewline = prevTrailing.Any(t => t.IsKind(SyntaxKind.EndOfLineTrivia));
 
@@ -157,6 +162,11 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
       if (differentGroup)
       {
         // Want 1 blank line (2 newlines total)
+        newlinesNeeded = prevHasNewline ? 1 : 2;
+      }
+      else if (bothMethods)
+      {
+        // Methods should always have 1 blank line between them
         newlinesNeeded = prevHasNewline ? 1 : 2;
       }
       else
