@@ -57,7 +57,7 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
         .ThenBy(m => MemberOrderAnalyzer.GetIdentifier(m).ValueText, StringComparer.Ordinal)
         .ToList();
 
-    CopyWhiteSpace(ref members, sortedMembers);
+    CopyWhiteSpace(ref members, sortedMembers, typeDecl);
 
     var newTypeDecl = typeDecl.WithMembers(SyntaxFactory.List(sortedMembers));
 
@@ -70,9 +70,11 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
     return document.WithSyntaxRoot(newRoot).Project.Solution;
   }
 
-  private static void CopyWhiteSpace(ref SyntaxList<MemberDeclarationSyntax> members, List<MemberDeclarationSyntax> sortedMembers)
+  private static void CopyWhiteSpace(ref SyntaxList<MemberDeclarationSyntax> members, List<MemberDeclarationSyntax> sortedMembers, TypeDeclarationSyntax typeDecl)
   {
     if (members.Count == 0) return;
+
+    bool isInterface = typeDecl is InterfaceDeclarationSyntax;
 
     // First pass: normalize trailing trivia to remove excessive newlines
     for (int i = 0; i < sortedMembers.Count; i++)
@@ -125,10 +127,10 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
                             prevOrder.Accessibility != currentOrder.Accessibility ||
                             prevOrder.StaticInstance != currentOrder.StaticInstance;
 
-      // Methods should always have spacing between them, even in the same group
+      // Methods should always have spacing between them in classes, but not in interfaces
       bool isMethod = currMember.Kind() == SyntaxKind.MethodDeclaration;
       bool prevIsMethod = prevMember.Kind() == SyntaxKind.MethodDeclaration;
-      bool bothMethods = isMethod && prevIsMethod;
+      bool bothMethods = isMethod && prevIsMethod && !isInterface;
 
       var prevTrailing = prevMember.GetTrailingTrivia();
       bool prevHasNewline = prevTrailing.Any(t => t.IsKind(SyntaxKind.EndOfLineTrivia));
