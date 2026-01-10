@@ -52,6 +52,7 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
     var sortedMembers = members
         .OrderBy(m => MemberOrderAnalyzer.GetMemberOrder(m).MemberType)
         .ThenBy(m => MemberOrderAnalyzer.GetMemberOrder(m).Accessibility)
+        .ThenBy(m => MemberOrderAnalyzer.GetMemberOrder(m).ExternOrder)
         .ThenBy(m => MemberOrderAnalyzer.GetMemberOrder(m).StaticInstance)
         // Tie-break: alphabetical by identifier to make ordering deterministic
         .ThenBy(m => MemberOrderAnalyzer.GetIdentifier(m).ValueText, StringComparer.Ordinal)
@@ -125,6 +126,7 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
 
       bool differentGroup = prevOrder.MemberType != currentOrder.MemberType ||
                             prevOrder.Accessibility != currentOrder.Accessibility ||
+                            prevOrder.ExternOrder != currentOrder.ExternOrder ||
                             prevOrder.StaticInstance != currentOrder.StaticInstance;
 
       // Methods should always have spacing between them in classes, but not in interfaces

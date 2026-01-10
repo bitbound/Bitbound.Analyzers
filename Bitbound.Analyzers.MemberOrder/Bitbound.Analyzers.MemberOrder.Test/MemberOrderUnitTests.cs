@@ -646,4 +646,228 @@ public class MemberOrderUnitTests
     var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MyProperty");
     await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
   }
+
+  [TestMethod]
+  public async Task ExternMethodAtBottom_NoDiagnostic()
+  {
+    var test = """
+      using System.Runtime.InteropServices;
+      
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          public void RegularMethod() { }
+
+          [DllImport("user32.dll")]
+          public static extern int MessageBox(int hWnd, string text, string caption, uint type);
+        }
+      }
+      """;
+
+    await VerifyCS.VerifyAnalyzerAsync(test);
+  }
+
+  [TestMethod]
+  public async Task ExternBeforeRegularMethod_DiagnosticAndFix()
+  {
+    var test = """
+      using System.Runtime.InteropServices;
+      
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          [DllImport("user32.dll")]
+          public static extern int MessageBox(int hWnd, string text, string caption, uint type);
+
+          public void {|#0:RegularMethod|}() { }
+        }
+      }
+      """;
+
+    var fixtest = """
+      using System.Runtime.InteropServices;
+      
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          public void RegularMethod() { }
+
+          [DllImport("user32.dll")]
+          public static extern int MessageBox(int hWnd, string text, string caption, uint type);
+        }
+      }
+      """;
+
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("RegularMethod");
+    await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
+  }
+
+  [TestMethod]
+  public async Task MultipleExternMethods_NoDiagnostic()
+  {
+    var test = """
+      using System.Runtime.InteropServices;
+      
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          public void RegularMethod() { }
+
+          [DllImport("kernel32.dll")]
+          public static extern bool Beep(uint dwFreq, uint dwDuration);
+
+          [DllImport("user32.dll")]
+          public static extern int MessageBox(int hWnd, string text, string caption, uint type);
+        }
+      }
+      """;
+
+    await VerifyCS.VerifyAnalyzerAsync(test);
+  }
+
+  [TestMethod]
+  public async Task ExternMethodMixedWithRegular_DiagnosticAndFix()
+  {
+    var test = """
+      using System.Runtime.InteropServices;
+      
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          [DllImport("user32.dll")]
+          public static extern int MessageBox(int hWnd, string text, string caption, uint type);
+
+          public void {|#0:FirstMethod|}() { }
+
+          [DllImport("kernel32.dll")]
+          public static extern bool Beep(uint dwFreq, uint dwDuration);
+
+          public void SecondMethod() { }
+        }
+      }
+      """;
+
+    var fixtest = """
+      using System.Runtime.InteropServices;
+      
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          public void FirstMethod() { }
+
+          public void SecondMethod() { }
+
+          [DllImport("kernel32.dll")]
+          public static extern bool Beep(uint dwFreq, uint dwDuration);
+
+          [DllImport("user32.dll")]
+          public static extern int MessageBox(int hWnd, string text, string caption, uint type);
+        }
+      }
+      """;
+
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("FirstMethod");
+    await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
+  }
+
+  [TestMethod]
+  public async Task ExternPropertySortedNormally_NoDiagnostic()
+  {
+    var test = """
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          public extern int ExternProperty { get; }
+
+          public int RegularProperty { get; set; }
+        }
+      }
+      """;
+
+    await VerifyCS.VerifyAnalyzerAsync(test);
+  }
+
+  [TestMethod]
+  public async Task ExternPropertySortedAlphabetically_DiagnosticAndFix()
+  {
+    var test = """
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          public int RegularProperty { get; set; }
+
+          public extern int {|#0:ExternProperty|} { get; }
+        }
+      }
+      """;
+
+    var fixtest = """
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          public extern int ExternProperty { get; }
+          public int RegularProperty { get; set; }
+        }
+      }
+      """;
+
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("ExternProperty");
+    await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
+  }
+
+  [TestMethod]
+  public async Task ExternWithDifferentAccessibilities_DiagnosticAndFix()
+  {
+    var test = """
+      using System.Runtime.InteropServices;
+      
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          public void PublicMethod() { }
+
+          [DllImport("user32.dll")]
+          private static extern int PrivateExtern();
+
+          private void {|#0:PrivateMethod|}() { }
+
+          [DllImport("kernel32.dll")]
+          public static extern bool PublicExtern();
+        }
+      }
+      """;
+
+    var fixtest = """
+      using System.Runtime.InteropServices;
+      
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          public void PublicMethod() { }
+
+          [DllImport("kernel32.dll")]
+          public static extern bool PublicExtern();
+
+          private void PrivateMethod() { }
+
+          [DllImport("user32.dll")]
+          private static extern int PrivateExtern();
+        }
+      }
+      """;
+
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("PrivateMethod");
+    await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
+  }
 }

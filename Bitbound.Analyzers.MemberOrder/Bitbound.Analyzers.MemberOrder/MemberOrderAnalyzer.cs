@@ -52,13 +52,14 @@ public class MemberOrderAnalyzer : DiagnosticAnalyzer
         };
     }
 
-    public static (int MemberType, int Accessibility, int StaticInstance) GetMemberOrder(MemberDeclarationSyntax member)
+    public static (int MemberType, int Accessibility, int ExternOrder, int StaticInstance) GetMemberOrder(MemberDeclarationSyntax member)
     {
         var memberType = GetMemberTypeOrder(member);
         var accessibility = GetAccessibilityOrder(member);
+        var externOrder = GetExternOrder(member);
         var staticInstance = GetStaticInstanceOrder(member);
 
-        return (memberType, accessibility, staticInstance);
+        return (memberType, accessibility, externOrder, staticInstance);
     }
 
     public override void Initialize(AnalysisContext context)
@@ -88,6 +89,7 @@ public class MemberOrderAnalyzer : DiagnosticAnalyzer
         var orderedMembers = memberOrders
             .OrderBy(m => m.Order.MemberType)
             .ThenBy(m => m.Order.Accessibility)
+            .ThenBy(m => m.Order.ExternOrder)
             .ThenBy(m => m.Order.StaticInstance)
             // Tie-break: sort alphabetically by identifier when the other bits are equal
             .ThenBy(m => GetIdentifier(m.Member).ValueText, StringComparer.Ordinal)
@@ -218,6 +220,21 @@ public class MemberOrderAnalyzer : DiagnosticAnalyzer
     {
         // static members first, then instance
         return member.Modifiers.Any(SyntaxKind.StaticKeyword) ? 1 : 2;
+    }
+
+    private static int GetExternOrder(MemberDeclarationSyntax member)
+    {
+        // Check if member has DllImport or LibraryImport attribute (P/Invoke methods)
+        var hasPInvokeAttribute = member.AttributeLists
+            .SelectMany(al => al.Attributes)
+            .Any(attr =>
+            {
+                var name = attr.Name.ToString();
+                return name.Contains("DllImport") || name.Contains("LibraryImport");
+            });
+
+        // Only P/Invoke methods go last, not all extern members
+        return hasPInvokeAttribute ? 2 : 1;
     }
 
     private static bool IsEfCoreMigration(TypeDeclarationSyntax typeDeclaration, SemanticModel contextSemanticModel)
