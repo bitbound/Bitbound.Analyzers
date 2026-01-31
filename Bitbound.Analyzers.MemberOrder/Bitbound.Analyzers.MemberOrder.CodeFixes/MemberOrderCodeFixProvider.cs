@@ -170,7 +170,7 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
       }
       else if (bothMethods)
       {
-        // Methods should always have 1 blank line between them
+        // Methods should always have 1 blank line between them in classes
         newlinesNeeded = prevHasNewline ? 1 : 2;
       }
       else
