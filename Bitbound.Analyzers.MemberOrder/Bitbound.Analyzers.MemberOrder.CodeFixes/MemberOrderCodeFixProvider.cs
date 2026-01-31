@@ -77,6 +77,9 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
 
     bool isInterface = typeDecl is InterfaceDeclarationSyntax;
 
+    // Detect the line ending style used in the existing code
+    var endOfLineTrivia = DetectLineEndingTrivia(members);
+
     // First pass: normalize trailing trivia to remove excessive newlines
     for (int i = 0; i < sortedMembers.Count; i++)
     {
@@ -182,7 +185,7 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
       var newTriviaList = new List<SyntaxTrivia>();
       for (int k = 0; k < newlinesNeeded; k++)
       {
-        newTriviaList.Add(SyntaxFactory.CarriageReturnLineFeed);
+        newTriviaList.Add(endOfLineTrivia);
       }
 
       // Add back the indentation whitespace if it exists
@@ -226,6 +229,34 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
 
   private static MemberDeclarationSyntax CopyTrailingTrivia(MemberDeclarationSyntax target, MemberDeclarationSyntax source)
       => target.WithTrailingTrivia(source.GetTrailingTrivia());
+
+  private static SyntaxTrivia DetectLineEndingTrivia(SyntaxList<MemberDeclarationSyntax> members)
+  {
+    // Search through all members to find the first EndOfLineTrivia
+    foreach (var member in members)
+    {
+      var leadingTrivia = member.GetLeadingTrivia();
+      foreach (var trivia in leadingTrivia)
+      {
+        if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
+        {
+          return trivia;
+        }
+      }
+
+      var trailingTrivia = member.GetTrailingTrivia();
+      foreach (var trivia in trailingTrivia)
+      {
+        if (trivia.IsKind(SyntaxKind.EndOfLineTrivia))
+        {
+          return trivia;
+        }
+      }
+    }
+
+    // Default to LF if no line endings found (Linux/Mac default)
+    return SyntaxFactory.LineFeed;
+  }
 
   private static IEnumerable<SyntaxTrivia> ExtractLeadingWhitespace(SyntaxTriviaList trivia)
   {
