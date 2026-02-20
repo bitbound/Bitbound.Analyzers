@@ -91,7 +91,8 @@ public class MemberOrderAnalyzer : DiagnosticAnalyzer
             .ThenBy(m => m.Order.Accessibility)
             .ThenBy(m => m.Order.ExternOrder)
             .ThenBy(m => m.Order.StaticInstance)
-            // Tie-break: sort alphabetically by identifier when the other bits are equal
+            // Tie-break: sort alphabetically by identifier, ignoring case
+            .ThenBy(m => GetIdentifier(m.Member).ValueText, StringComparer.OrdinalIgnoreCase)
             .ThenBy(m => GetIdentifier(m.Member).ValueText, StringComparer.Ordinal)
             .Select(m => m.Member)
             .ToList();

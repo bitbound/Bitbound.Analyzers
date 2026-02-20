@@ -825,6 +825,35 @@ public class MemberOrderUnitTests
   }
 
   [TestMethod]
+  public async Task SameGroup_SortedAlphabetically_IgnoringCase_DiagnosticAndFix()
+  {
+    var test = """
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          private string DesktopSessionTitle;
+          private string {|#0:DesktopSessions|};
+        }
+      }
+      """;
+
+    var fixtest = """
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          private string DesktopSessions;
+          private string DesktopSessionTitle;
+        }
+      }
+      """;
+
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("DesktopSessions");
+    await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
+  }
+
+  [TestMethod]
   public async Task ExternWithDifferentAccessibilities_DiagnosticAndFix()
   {
     var test = """

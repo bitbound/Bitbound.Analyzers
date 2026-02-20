@@ -50,13 +50,16 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
     var members = typeDecl.Members;
 
     var sortedMembers = members
-        .OrderBy(m => MemberOrderAnalyzer.GetMemberOrder(m).MemberType)
-        .ThenBy(m => MemberOrderAnalyzer.GetMemberOrder(m).Accessibility)
-        .ThenBy(m => MemberOrderAnalyzer.GetMemberOrder(m).ExternOrder)
-        .ThenBy(m => MemberOrderAnalyzer.GetMemberOrder(m).StaticInstance)
-        // Tie-break: alphabetical by identifier to make ordering deterministic
-        .ThenBy(m => MemberOrderAnalyzer.GetIdentifier(m).ValueText, StringComparer.Ordinal)
-        .ToList();
+      .Select(member => (Member: member, Order: MemberOrderAnalyzer.GetMemberOrder(member), Identifier: MemberOrderAnalyzer.GetIdentifier(member).ValueText))
+      .OrderBy(m => m.Order.MemberType)
+      .ThenBy(m => m.Order.Accessibility)
+      .ThenBy(m => m.Order.ExternOrder)
+      .ThenBy(m => m.Order.StaticInstance)
+      // Tie-break: alphabetical by identifier, ignoring case
+      .ThenBy(m => m.Identifier, StringComparer.OrdinalIgnoreCase)
+      .ThenBy(m => m.Identifier, StringComparer.Ordinal)
+      .Select(m => m.Member)
+      .ToList();
 
     CopyWhiteSpace(ref members, sortedMembers, typeDecl);
 
