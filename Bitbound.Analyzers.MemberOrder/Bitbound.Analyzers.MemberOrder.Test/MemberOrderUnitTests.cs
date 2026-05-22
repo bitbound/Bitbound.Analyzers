@@ -648,6 +648,40 @@ public class MemberOrderUnitTests
   }
 
   [TestMethod]
+  public async Task MultiplePrivateNestedClasses_OutOfOrder_DiagnosticAndFix()
+  {
+    var test = """
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          public void MyMethod() { }
+          private class Zebra { }
+          private class {|#0:Apple|} { }
+          private class Mango { }
+        }
+      }
+      """;
+
+    var fixtest = """
+      namespace MyCode
+      {
+        public class MyClass
+        {
+          public void MyMethod() { }
+
+          private class Apple { }
+          private class Mango { }
+          private class Zebra { }
+        }
+      }
+      """;
+
+    var expected = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("Apple");
+    await VerifyCS.VerifyCodeFixAsync(test, expected, fixtest);
+  }
+
+  [TestMethod]
   public async Task ExternMethodAtBottom_NoDiagnostic()
   {
     var test = """
