@@ -257,4 +257,112 @@ public class MemberOrderSpacingTests
     var expectedDiagnostic = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MethodA");
     await VerifyCS.VerifyCodeFixAsync(test, expectedDiagnostic, expectedSource);
   }
+
+  [TestMethod]
+  public async Task Fix_MethodsOnly_AlphabeticalOrder()
+  {
+    var test = """
+            namespace MyCode
+            {
+                public class MyClass
+                {
+                    public void MethodB() { }
+                    public void {|#0:MethodA|}() { }
+                    public void MethodD() { }
+                    public void MethodC() { }
+                }
+            }
+            """;
+
+    var expectedSource = """
+            namespace MyCode
+            {
+                public class MyClass
+                {
+                    public void MethodA() { }
+
+                    public void MethodB() { }
+
+                    public void MethodC() { }
+
+                    public void MethodD() { }
+                }
+            }
+            """;
+
+    var expectedDiagnostic = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MethodA");
+    await VerifyCS.VerifyCodeFixAsync(test, expectedDiagnostic, expectedSource);
+  }
+
+  [TestMethod]
+  public async Task Fix_MethodsWithComment_PreservesMethodIndentation()
+  {
+    var test = """
+            namespace MyCode
+            {
+                public class MyClass
+                {
+                    public void MethodB() { }
+                    // Comment for MethodA
+                    public void {|#0:MethodA|}() { }
+                }
+            }
+            """;
+
+    var expectedSource = """
+            namespace MyCode
+            {
+                public class MyClass
+                {
+                    // Comment for MethodA
+                    public void MethodA() { }
+
+                    public void MethodB() { }
+                }
+            }
+            """;
+
+    var expectedDiagnostic = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MethodA");
+    await VerifyCS.VerifyCodeFixAsync(test, expectedDiagnostic, expectedSource);
+  }
+
+  [TestMethod]
+  public async Task Fix_NestedClassMethods_AlphabeticalOrder()
+  {
+    var test = """
+            namespace MyCode
+            {
+                public class Outer
+                {
+                    public int OuterField;
+
+                    public class Inner
+                    {
+                        public void MethodB() { }
+                        public void {|#0:MethodA|}() { }
+                    }
+                }
+            }
+            """;
+
+    var expectedSource = """
+            namespace MyCode
+            {
+                public class Outer
+                {
+                    public int OuterField;
+
+                    public class Inner
+                    {
+                        public void MethodA() { }
+
+                        public void MethodB() { }
+                    }
+                }
+            }
+            """;
+
+    var expectedDiagnostic = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MethodA");
+    await VerifyCS.VerifyCodeFixAsync(test, expectedDiagnostic, expectedSource);
+  }
 }
