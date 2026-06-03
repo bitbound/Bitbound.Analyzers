@@ -218,7 +218,7 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
     var reorderedFirst = sortedMembers[0];
     if (originalFirst != reorderedFirst)
     {
-      sortedMembers[0] = CopyLeadingWhitespace(reorderedFirst, originalFirst);
+      sortedMembers[0] = FixLeadingTrivia(reorderedFirst, originalFirst, endOfLineTrivia);
     }
 
     // Step 4: Copy trailing trivia from original last member to sorted last member.
@@ -231,8 +231,19 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
     }
   }
 
-  private static MemberDeclarationSyntax CopyLeadingWhitespace(MemberDeclarationSyntax target, MemberDeclarationSyntax source)
+  private static MemberDeclarationSyntax FixLeadingTrivia(MemberDeclarationSyntax target, MemberDeclarationSyntax source, SyntaxTrivia endOfLineTrivia)
   {
+    // If the target has non-whitespace leading trivia (e.g., XML doc comments, regular comments),
+    // preserve it as-is. The indentation of those comments should be maintained.
+    foreach (var t in target.GetLeadingTrivia())
+    {
+      if (!t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia))
+      {
+        return target;
+      }
+    }
+
+    // Collect the indentation pattern from source (newlines + leading whitespace).
     var sourceWhitespace = new List<SyntaxTrivia>();
     foreach (var t in source.GetLeadingTrivia())
     {
@@ -242,18 +253,9 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
         break;
     }
 
-    var targetNonWhitespace = new List<SyntaxTrivia>();
-    var foundNonWhitespace = false;
-    foreach (var t in target.GetLeadingTrivia())
-    {
-      if (!foundNonWhitespace && (t.IsKind(SyntaxKind.WhitespaceTrivia) || t.IsKind(SyntaxKind.EndOfLineTrivia)))
-        continue;
-
-      foundNonWhitespace = true;
-      targetNonWhitespace.Add(t);
-    }
-
-    return target.WithLeadingTrivia(SyntaxFactory.TriviaList(sourceWhitespace.Concat(targetNonWhitespace)));
+    // Strip all existing leading trivia from target, then prepend the source's whitespace.
+    // This removes any original indentation while preserving comments/xml docs attached to the target.
+    return target.WithLeadingTrivia(SyntaxFactory.TriviaList(sourceWhitespace));
   }
 
   private static SyntaxTrivia DetectLineEndingTrivia(SyntaxList<MemberDeclarationSyntax> members)

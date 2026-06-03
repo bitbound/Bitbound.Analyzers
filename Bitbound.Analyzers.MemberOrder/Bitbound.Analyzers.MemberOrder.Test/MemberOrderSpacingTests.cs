@@ -366,4 +366,68 @@ public class MemberOrderSpacingTests
     var expectedDiagnostic = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MethodA");
     await VerifyCS.VerifyCodeFixAsync(test, expectedDiagnostic, expectedSource);
   }
+
+  [TestMethod]
+  public async Task Fix_MethodsWithXmlDoc_PreservesXmlDocIndentation()
+  {
+    var test = """
+            namespace MyCode
+            {
+                public class MyClass
+                {
+                    public void MethodB() { }
+                    /// <summary>Gets or sets the value of <see cref="MyProperty"/>.</summary>
+                    public void {|#0:MethodA|}() { }
+                }
+            }
+            """;
+
+    var expectedSource = """
+            namespace MyCode
+            {
+                public class MyClass
+                {
+                    /// <summary>Gets or sets the value of <see cref="MyProperty"/>.</summary>
+                    public void MethodA() { }
+
+                    public void MethodB() { }
+                }
+            }
+            """;
+
+    var expectedDiagnostic = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MethodA");
+    await VerifyCS.VerifyCodeFixAsync(test, expectedDiagnostic, expectedSource);
+  }
+
+  [TestMethod]
+  public async Task Fix_MethodsWithIndentedXmlDoc_PreservesXmlDocIndentation()
+  {
+    var test = """
+            namespace MyCode
+            {
+                public class MyClass
+                {
+                    public void MethodB() { }
+                        /// <summary>Gets or sets the value of <see cref="MyProperty"/>.</summary>
+                        public void {|#0:MethodA|}() { }
+                }
+            }
+            """;
+
+    var expectedSource = """
+            namespace MyCode
+            {
+                public class MyClass
+                {
+                        /// <summary>Gets or sets the value of <see cref="MyProperty"/>.</summary>
+                        public void MethodA() { }
+
+                    public void MethodB() { }
+                }
+            }
+            """;
+
+    var expectedDiagnostic = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MethodA");
+    await VerifyCS.VerifyCodeFixAsync(test, expectedDiagnostic, expectedSource);
+  }
 }
