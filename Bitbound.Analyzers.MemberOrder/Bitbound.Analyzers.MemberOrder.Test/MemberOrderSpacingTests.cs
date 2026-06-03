@@ -255,6 +255,7 @@ public class MemberOrderSpacingTests
             """;
 
     var expectedDiagnostic = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MethodA");
+    
     await VerifyCS.VerifyCodeFixAsync(test, expectedDiagnostic, expectedSource);
   }
 

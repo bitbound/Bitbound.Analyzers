@@ -27,10 +27,15 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
     var diagnostic = context.Diagnostics.First();
     var diagnosticSpan = diagnostic.Location.SourceSpan;
 
-    // The diagnostic is on the identifier token. We need to find the containing TypeDeclaration.
-    var typeDecl = root.FindToken(diagnosticSpan.Start).Parent?.AncestorsAndSelf().OfType<TypeDeclarationSyntax>().LastOrDefault();
+    // The diagnostic is on the identifier token. Find the MemberDeclarationSyntax
+    // containing the token, then find its parent TypeDeclarationSyntax.
+    // This works correctly for both regular members (fields, methods) and nested types.
+    var member = root.FindToken(diagnosticSpan.Start)
+      .Parent?.AncestorsAndSelf()
+      .OfType<MemberDeclarationSyntax>()
+      .FirstOrDefault();
 
-    if (typeDecl is null)
+    if (member?.Parent is not TypeDeclarationSyntax typeDecl)
     {
       // It might be a member in a compilation unit (e.g. global using)
       // For this analyzer, we only care about members within a type.
@@ -82,36 +87,47 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
     // Detect the line ending style used in the existing code
     var endOfLineTrivia = DetectLineEndingTrivia(members);
 
-    // Determine the common indentation from the original first member
-    SyntaxTrivia? indentation = null;
-    foreach (var t in members[0].GetLeadingTrivia())
-    {
-      if (t.IsKind(SyntaxKind.WhitespaceTrivia))
-        indentation = t;
-      else if (t.IsKind(SyntaxKind.EndOfLineTrivia))
-        indentation = null;
-    }
-
-    // Step 1: Strip leading/trailing whitespace trivia from every member,
-    // but preserve non-whitespace trivia (comments, attributes).
+    // Step 1: Normalize trailing trivia on every member (remove excessive newlines).
     for (int i = 0; i < sortedMembers.Count; i++)
     {
       var member = sortedMembers[i];
+      var trailingTrivia = member.GetTrailingTrivia();
 
-      var preservedLeading = member.GetLeadingTrivia()
-        .Where(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia))
-        .ToList();
+      var newTrailing = new List<SyntaxTrivia>();
+      bool hasNewline = false;
 
-      var preservedTrailing = member.GetTrailingTrivia()
-        .Where(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia))
-        .ToList();
+      foreach (var t in trailingTrivia)
+      {
+        if (t.IsKind(SyntaxKind.EndOfLineTrivia))
+        {
+          if (!hasNewline)
+          {
+            newTrailing.Add(t);
+            hasNewline = true;
+          }
+          // Skip additional newlines
+        }
+        else if (t.IsKind(SyntaxKind.WhitespaceTrivia))
+        {
+          // Keep whitespace only before the first newline
+          if (!hasNewline)
+          {
+            newTrailing.Add(t);
+          }
+        }
+        else
+        {
+          // Non-whitespace trivia (e.g., comments) always kept
+          newTrailing.Add(t);
+        }
+      }
 
-      sortedMembers[i] = member
-        .WithLeadingTrivia(SyntaxFactory.TriviaList(preservedLeading))
-        .WithTrailingTrivia(SyntaxFactory.TriviaList(preservedTrailing));
+      sortedMembers[i] = member.WithTrailingTrivia(SyntaxFactory.TriviaList(newTrailing));
     }
 
-    // Step 2: Determine which members should have blank lines between them.
+    // Step 2: Adjust spacing between members.
+    // We only skip the INITIAL whitespace/newlines from each member's leading trivia,
+    // preserving everything after (comments, attributes, and their surrounding structure).
     for (int i = 1; i < sortedMembers.Count; i++)
     {
       var prevMember = sortedMembers[i - 1];
@@ -130,50 +146,114 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
       bool prevIsMethod = prevMember.Kind() == SyntaxKind.MethodDeclaration;
       bool bothMethods = isMethod && prevIsMethod && !isInterface;
 
-      bool needsBlankLine = differentGroup || bothMethods;
+      var prevTrailing = prevMember.GetTrailingTrivia();
+      bool prevHasNewline = prevTrailing.Any(t => t.IsKind(SyntaxKind.EndOfLineTrivia));
 
-      int newlinesNeeded = needsBlankLine ? 2 : 1;
+      // Find where the initial whitespace/newlines end in the current member's leading trivia
+      var existingTrivia = currMember.GetLeadingTrivia();
+      var skipCount = 0;
+      SyntaxTrivia? indentationWhitespace = null;
+
+      foreach (var t in existingTrivia)
+      {
+        if (t.IsKind(SyntaxKind.WhitespaceTrivia))
+        {
+          indentationWhitespace = t;
+          skipCount++;
+        }
+        else if (t.IsKind(SyntaxKind.EndOfLineTrivia))
+        {
+          indentationWhitespace = null;
+          skipCount++;
+        }
+        else
+        {
+          // Found non-whitespace trivia (e.g., comment, attribute) - stop here
+          break;
+        }
+      }
+
+      int newlinesNeeded;
+      if (differentGroup)
+      {
+        // Want 1 blank line (2 newlines total)
+        newlinesNeeded = prevHasNewline ? 1 : 2;
+      }
+      else if (bothMethods)
+      {
+        // Methods should always have 1 blank line between them in classes
+        newlinesNeeded = prevHasNewline ? 1 : 2;
+      }
+      else
+      {
+        // Want 0 blank lines (1 newline total)
+        newlinesNeeded = prevHasNewline ? 0 : 1;
+      }
 
       var newTriviaList = new List<SyntaxTrivia>();
       for (int k = 0; k < newlinesNeeded; k++)
       {
         newTriviaList.Add(endOfLineTrivia);
       }
-      if (indentation.HasValue)
+
+      // Add back the indentation whitespace if it exists
+      if (indentationWhitespace.HasValue)
       {
-        newTriviaList.Add(indentation.Value);
+        newTriviaList.Add(indentationWhitespace.Value);
       }
 
-      // Add preserved non-whitespace trivia (comments, attributes, etc.)
-      newTriviaList.AddRange(currMember.GetLeadingTrivia());
+      // Add back all non-whitespace trivia (comments, attributes, etc.)
+      // along with their surrounding whitespace/newlines that come after the initial prefix
+      for (int j = skipCount; j < existingTrivia.Count; j++)
+      {
+        newTriviaList.Add(existingTrivia[j]);
+      }
 
       sortedMembers[i] = currMember.WithLeadingTrivia(SyntaxFactory.TriviaList(newTriviaList));
     }
 
-    // Step 3: Set leading trivia on the first member (preserve original indentation)
-    var firstSorted = sortedMembers[0];
-    var firstPreserved = firstSorted.GetLeadingTrivia()
-      .Where(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia))
-      .ToList();
-
-    var firstTrivia = new List<SyntaxTrivia>();
-    if (indentation.HasValue)
+    // Step 3: Copy leading whitespace from original first member to sorted first member.
+    // This ensures the first member always has the correct opening-brace-to-member whitespace.
+    var originalFirst = members[0];
+    var reorderedFirst = sortedMembers[0];
+    if (originalFirst != reorderedFirst)
     {
-      firstTrivia.Add(indentation.Value);
+      sortedMembers[0] = CopyLeadingWhitespace(reorderedFirst, originalFirst);
     }
-    firstTrivia.AddRange(firstPreserved);
-    sortedMembers[0] = firstSorted.WithLeadingTrivia(SyntaxFactory.TriviaList(firstTrivia));
 
-    // Step 4: Set trailing trivia on the last member (just a final newline + preserved trailing)
-    var lastMember = sortedMembers[sortedMembers.Count - 1];
-    var preservedLastTrailing = lastMember.GetTrailingTrivia()
-      .Where(t => !t.IsKind(SyntaxKind.WhitespaceTrivia) && !t.IsKind(SyntaxKind.EndOfLineTrivia))
-      .ToList();
-    var lastTrailing = new List<SyntaxTrivia>(preservedLastTrailing)
+    // Step 4: Copy trailing trivia from original last member to sorted last member.
+    int lastIdx = sortedMembers.Count - 1;
+    var originalLast = members[lastIdx];
+    var reorderedLast = sortedMembers[lastIdx];
+    if (originalLast != reorderedLast)
     {
-      endOfLineTrivia
-    };
-    sortedMembers[sortedMembers.Count - 1] = lastMember.WithTrailingTrivia(SyntaxFactory.TriviaList(lastTrailing));
+      sortedMembers[lastIdx] = reorderedLast.WithTrailingTrivia(originalLast.GetTrailingTrivia());
+    }
+  }
+
+  private static MemberDeclarationSyntax CopyLeadingWhitespace(MemberDeclarationSyntax target, MemberDeclarationSyntax source)
+  {
+    var sourceWhitespace = new List<SyntaxTrivia>();
+    foreach (var t in source.GetLeadingTrivia())
+    {
+      if (t.IsKind(SyntaxKind.WhitespaceTrivia) || t.IsKind(SyntaxKind.EndOfLineTrivia))
+        sourceWhitespace.Add(t);
+      else
+        break;
+    }
+
+    var targetNonWhitespace = new List<SyntaxTrivia>();
+    var foundNonWhitespace = false;
+    foreach (var t in target.GetLeadingTrivia())
+    {
+      if (!foundNonWhitespace && (t.IsKind(SyntaxKind.WhitespaceTrivia) || t.IsKind(SyntaxKind.EndOfLineTrivia)))
+        continue;
+
+      foundNonWhitespace = true;
+      targetNonWhitespace.Add(t);
+    }
+
+    return target.WithLeadingTrivia(SyntaxFactory.TriviaList(sourceWhitespace.Concat(targetNonWhitespace)));
   }
 
   private static SyntaxTrivia DetectLineEndingTrivia(SyntaxList<MemberDeclarationSyntax> members)
