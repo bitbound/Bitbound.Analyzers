@@ -149,12 +149,15 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
       var prevTrailing = prevMember.GetTrailingTrivia();
       bool prevHasNewline = prevTrailing.Any(t => t.IsKind(SyntaxKind.EndOfLineTrivia));
 
+      // Check if current member has attributes or XML docs above it
+      var currLeadingTrivia = currMember.GetLeadingTrivia();
+      bool currMemberHasAttributesOrXmlDocs = HasAttributesOrXmlDocs(currMember, currLeadingTrivia);
+
       // Find where the initial whitespace/newlines end in the current member's leading trivia
-      var existingTrivia = currMember.GetLeadingTrivia();
       var skipCount = 0;
       SyntaxTrivia? indentationWhitespace = null;
 
-      foreach (var t in existingTrivia)
+      foreach (var t in currLeadingTrivia)
       {
         if (t.IsKind(SyntaxKind.WhitespaceTrivia))
         {
@@ -184,6 +187,11 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
         // Methods should always have 1 blank line between them in classes
         newlinesNeeded = prevHasNewline ? 1 : 2;
       }
+      else if (currMemberHasAttributesOrXmlDocs)
+      {
+        // Member has attributes or XML docs - need blank line between it and the member above
+        newlinesNeeded = prevHasNewline ? 1 : 2;
+      }
       else
       {
         // Want 0 blank lines (1 newline total)
@@ -204,9 +212,9 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
 
       // Add back all non-whitespace trivia (comments, attributes, etc.)
       // along with their surrounding whitespace/newlines that come after the initial prefix
-      for (int j = skipCount; j < existingTrivia.Count; j++)
+      for (int j = skipCount; j < currLeadingTrivia.Count; j++)
       {
-        newTriviaList.Add(existingTrivia[j]);
+        newTriviaList.Add(currLeadingTrivia[j]);
       }
 
       sortedMembers[i] = currMember.WithLeadingTrivia(SyntaxFactory.TriviaList(newTriviaList));
@@ -284,5 +292,28 @@ public class MemberOrderCodeFixProvider : CodeFixProvider
 
     // Default to LF if no line endings found (Linux/Mac default)
     return SyntaxFactory.LineFeed;
+  }
+
+  private static bool HasAttributesOrXmlDocs(MemberDeclarationSyntax member, SyntaxTriviaList triviaList)
+  {
+    // Check if the member has attribute lists
+    if (member.AttributeLists.Count > 0)
+    {
+      return true;
+    }
+
+    foreach (var trivia in triviaList)
+    {
+      if (trivia.IsKind(SyntaxKind.WhitespaceTrivia) || trivia.IsKind(SyntaxKind.EndOfLineTrivia))
+      {
+        continue;
+      }
+
+      // Any non-whitespace trivia (XML docs, comments) indicates metadata
+      // that should have a blank line above it
+      return true;
+    }
+
+    return false;
   }
 }

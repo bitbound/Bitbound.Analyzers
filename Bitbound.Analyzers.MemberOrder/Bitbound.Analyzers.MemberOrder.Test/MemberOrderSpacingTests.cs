@@ -165,6 +165,7 @@ public class MemberOrderSpacingTests
                 {
                     int BasePriority { get; }
                     bool EnableRaisingEvents { get; set; }
+
                     [System.Obsolete]
                     nint ProcessorAffinity { get; set; }
                     bool Responding { get; }
@@ -428,6 +429,142 @@ public class MemberOrderSpacingTests
             """;
 
     var expectedDiagnostic = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MethodA");
+    await VerifyCS.VerifyCodeFixAsync(test, expectedDiagnostic, expectedSource);
+  }
+
+  [TestMethod]
+  public async Task Fix_MethodWithAttribute_BlankLineAbove()
+  {
+    var test = """
+            namespace MyCode
+            {
+                public class MyClass
+                {
+                    [System.Obsolete]
+                    public void MethodB() { }
+
+                    public void {|#0:MethodA|}() { }
+                }
+            }
+            """;
+
+    var expectedSource = """
+            namespace MyCode
+            {
+                public class MyClass
+                {
+                    public void MethodA() { }
+
+                    [System.Obsolete]
+                    public void MethodB() { }
+                }
+            }
+            """;
+
+    var expectedDiagnostic = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("MethodA");
+    await VerifyCS.VerifyCodeFixAsync(test, expectedDiagnostic, expectedSource);
+  }
+
+  [TestMethod]
+  public async Task Fix_FieldWithXmlDoc_BlankLineAbove()
+  {
+    var test = """
+            namespace MyCode
+            {
+                public class MyClass
+                {
+                    /// <summary>Field with docs</summary>
+                    public int FieldB;
+
+                    public int {|#0:FieldA|};
+                }
+            }
+            """;
+
+    var expectedSource = """
+            namespace MyCode
+            {
+                public class MyClass
+                {
+                    public int FieldA;
+
+                    /// <summary>Field with docs</summary>
+                    public int FieldB;
+                }
+            }
+            """;
+
+    var expectedDiagnostic = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("FieldA");
+    await VerifyCS.VerifyCodeFixAsync(test, expectedDiagnostic, expectedSource);
+  }
+
+  [TestMethod]
+  public async Task Fix_PrivateFields_WithAttributesAndXmlDocs_VariousSpacing()
+  {
+    var test = """
+            namespace MyCode
+            {
+                public class MyClass
+                {
+                    [System.Obsolete]
+                    private int _zuluField;
+
+                    private int {|#0:_alphaField|};
+
+                    /// <summary>
+                    /// Some beta docs
+                    /// </summary>
+                    private int _betaField;
+
+                    private int _charlieField;
+
+                    /// <summary>
+                    /// Delta with attribute
+                    /// </summary>
+                    [System.ComponentModel.DefaultValue(0)]
+                    private int _deltaField;
+
+                    private int _echoField;
+
+                    /// <summary>Only xml docs</summary>
+                    private int _foxtrotField;
+
+                    private int _gammaField;
+                }
+            }
+            """;
+
+    var expectedSource = """
+            namespace MyCode
+            {
+                public class MyClass
+                {
+                    private int _alphaField;
+
+                    /// <summary>
+                    /// Some beta docs
+                    /// </summary>
+                    private int _betaField;
+                    private int _charlieField;
+
+                    /// <summary>
+                    /// Delta with attribute
+                    /// </summary>
+                    [System.ComponentModel.DefaultValue(0)]
+                    private int _deltaField;
+                    private int _echoField;
+
+                    /// <summary>Only xml docs</summary>
+                    private int _foxtrotField;
+                    private int _gammaField;
+
+                    [System.Obsolete]
+                    private int _zuluField;
+                }
+            }
+            """;
+
+    var expectedDiagnostic = VerifyCS.Diagnostic("BB0001").WithLocation(0).WithArguments("_alphaField");
     await VerifyCS.VerifyCodeFixAsync(test, expectedDiagnostic, expectedSource);
   }
 }
