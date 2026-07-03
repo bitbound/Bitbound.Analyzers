@@ -898,12 +898,9 @@ public class MemberOrderUnitTests
         public class MyClass
         {
           public void PublicMethod() { }
-
           [DllImport("user32.dll")]
           private static extern int PrivateExtern();
-
           private void {|#0:PrivateMethod|}() { }
-
           [DllImport("kernel32.dll")]
           public static extern bool PublicExtern();
         }
